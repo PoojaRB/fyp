@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Box</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="text/javascript" src="{{url_for('static',filename='js/jquery.min.js')}}"></script>
+  <script type="text/javascript" src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/bootstrap.min.css')}}">
+  <style>
+  body{
+    margin-left: 20%;
+    margin-right: 20%;}
+ .chat
+  {
+    list-style: none;
+    margin: auto auto auto auto;
+    padding: 25px auto 25px auto;
+}
+
+.chat li
+{
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dotted #B3A9A9;
+}
+
+.chat li.left .chat-body
+{
+    margin-left: 60px;
+    text-align: right;
+}
+
+.chat li.right .chat-body
+{
+    margin-right: 60px;
+    text-align: right;
+}
+
+
+.chat li .chat-body p
+{
+    margin: 0;
+    color: #777777;
+}
+
+.panel .slidedown .glyphicon, .chat .glyphicon
+{
+    margin-right: 5px;
+}
+
+.panel-body
+{
+    overflow-y: scroll;
+    height: 250px;
+}
+.container{
+    padding-top: 70px;
+    width:100%;
+}
+
+::-webkit-scrollbar-track
+{
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    background-color: #F5F5F5;
+}
+
+::-webkit-scrollbar
+{
+    width: 12px;
+    background-color: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb
+{
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+    background-color: #555;
+}
+
+</style>
+</head>
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <a href="/" class="navbar-brand">Home</a>
+    <a href="/chat" class="navbar-brand">Chat</a>
+</nav>
+<hr style="padding-top: 70px">
+<div id="chatPanel" class="panel panel-primary">
+<div class="panel-heading">
+<span class="glyphicon glyphicon-comment"> ChatBot</span>
+</div>
+<div class="panel-body" style="overflow-y: scroll;
+    height: 550px;">
+    <ul class="media-list">
+        <li class="right clearfix"><span class="chat-img pull-right">
+                                <img src="http://placehold.it/50/FA6F57/fff&text=ME" alt="User Avatar" class="img-circle" />
+                            </span>
+                            <div class="chat-body clearfix">
+                                <div class="header">
+                                    <small class=" text-muted"><span class="glyphicon glyphicon-time"></span>13 mins ago</small>
+                                    <strong class="pull-right primary-font">ROBOT</strong>
+                                </div>
+                                <p class="pull-right"><font color ="red">{{ toSpeak }}</font></p>
+                             </div>
+                        </li> 
+    </ul>
+</div>
+</div>
+<div onclick="startButton(event);"><img alt="Start" id="start_img" src="https://speechlogger.appspot.com/images/micoff2.png"></div> 
+</body>
+<script>
+
+function startButton(event) {
+    recognition.start();
+    start_img.src = 'https://speechlogger.appspot.com/images/micslash2.png'; //We change the image to a slashed until the user approves the browser to listen and recognition actually starts. Then – we’ll change the image to ‘mic on’.
+}
+
+if (!('webkitSpeechRecognition' in window)) {
+    //Speech API not supported here…
+} else { //Let’s do some cool stuff :)
+    var recognition = new webkitSpeechRecognition(); //That is the object that will manage our whole recognition process. 
+    recognition.continuous = true;   //Suitable for dictation. 
+    recognition.interimResults = true;  //If we want to start receiving results even if they are not final.
+    //Define some more additional parameters for the recognition:
+    recognition.lang = "en-US"; 
+    recognition.maxAlternatives = 1; //Since from our experience, the highest result is really the best...
+}
+
+recognition.onstart = function() {
+    //Listening (capturing voice from audio input) started.
+    //This is a good place to give the user visual feedback about that (i.e. flash a red light, etc.)
+};
+
+recognition.onend = function() {
+    //Again – give the user feedback that you are not listening anymore. If you wish to achieve continuous recognition – you can write a script to start the recognizer again here.
+};
+
+recognition.onresult = function(event) { //the event holds the results
+//Yay – we have results! Let’s check if they are defined and if final or not:
+    if (typeof(event.results) === 'undefined') { //Something is wrong…
+        recognition.stop();
+        return;
+    }
+
+    for (var i = event.resultIndex; i < event.results.length; ++i) {      
+        if (event.results[i].isFinal) { //Final results
+            //console.log("final results: " + event.results[i][0].transcript);   //Of course – here is the place to do useful things with the results.
+             $( ".media-list" ).append('<li class="left clearfix"><span class="chat-img pull-left">\
+                                <img src="http://placehold.it/50/55C1E7/fff&text=U" alt="User Avatar" class="img-circle" />\
+                            </span>\
+                            <div class="chat-body clearfix">\
+                                <div class="header">\
+                                    <strong class="primary-font">USER</strong> <small class="pull-right text-muted">\
+                                        <span class="glyphicon glyphicon-time"></span>12 mins ago</small>\
+                                    </div>\
+                                    <p class="pull-left"><font color="blue">'+event.results[i][0].transcript+'</font></p>\
+                                </div>\
+                            </li>');
+        $(".panel-body").stop().animate({ scrollTop: $(".panel-body")[0].scrollHeight}, 1000);
+        console.log($(this).serialize());
+        $.ajax({
+            type: "POST",
+            url: "/ask",
+            data: event.results[i][0].transcript,
+            contentType: "application/json",
+            success: function(response) {
+                $('#chatmessage').val('');
+                var answer = response.answer.toUpperCase();
+                const chatPanel = document.getElementById("chatPanel");
+                $(".media-list").append('<li class="right clearfix"><span class="chat-img pull-right">\
+                                <img src="http://placehold.it/50/FA6F57/fff&text=ME" alt="User Avatar" class="img-circle" />\
+                            </span>\
+                            <div class="chat-body clearfix">\
+                                <div class="header">\
+                                    <small class=" text-muted"><span class="glyphicon glyphicon-time"></span>13 mins ago</small>\
+                                    <strong class="pull-right primary-font">ROBOT</strong>\
+                                </div>\
+                                <p class="pull-right"><font color ="red">'+answer+'</font></p>\
+                             </div>\
+                        </li>');
+                $(".panel-body").stop().animate({ scrollTop: $(".panel-body")[0].scrollHeight}, 1000);
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+        } else {   //i.e. interim...
+           //console.log("interim results: " + event.results[i][0].transcript);  
+           //You can use these results to give the user near real time experience.
+        } 
+    } //end for loop
+}; 
+
+
+</script>
+</html>

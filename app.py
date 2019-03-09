@@ -1,37 +1,30 @@
-from flask import Flask
-from flask import jsonify
-from flask import request
-app = Flask(__name__)
-empDB=[
- {
- 'id':'101',
- 'name':'Saravanan S',
- 'title':'Technical Leader'
- },
- {
- 'id':'201',
- 'name':'Rajkumar P',
- 'title':'Sr Software Engineer'
- }
- ]
-@app.route('/empdb/employee',methods=['GET'])
-def getAllEmp():
-    return jsonify({'emps':empDB})
-    
-@app.route('/empdb/employee/<empId>',methods=['GET'])
-def getEmp(empId):
-    usr = [ emp for emp in empDB if (emp['id'] == empId) ] 
-    return jsonify({'emp':usr})
+from flask import Flask, render_template, request, jsonify
+#import speechSynthesizer as ss
+import pyttsx3
 
-@app.route('/empdb/employee',methods=['POST'])
-def createEmp():
-    dat = {
-    'id':request.json['id'],
-    'name':request.json['name'],
-    'title':request.json['title']
-    }
-    empDB.append(dat)
-    return jsonify(dat)
+
+app = Flask(__name__)
+def synthesize(toSpeak):
+	engine = pyttsx3.init()
+	en_voice_id = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\MSTTS_V110_enIN_HeeraM"
+	engine.setProperty('voice',en_voice_id)
+	engine.setProperty('rate',220)
+	engine.say(toSpeak)
+	engine.runAndWait()
+
+@app.route('/')
+def hello():
+	toSpeak = "Hello welcome"
+	return render_template('chat.html',toSpeak=toSpeak)
+
+@app.route("/ask", methods=['POST','GET'])
+def ask():
+	if request.method == 'POST':
+		message = request.data.decode('utf-8')
+		print(message)
+		synthesize("you said "+message)
+		return jsonify({'status':'OK','answer':"you said "+message})
+
 
 if __name__ == '__main__':
- app.run(host= '0.0.0.0',debug=True)
+    app.run(debug=True)
