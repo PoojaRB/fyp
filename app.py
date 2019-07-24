@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify
 import pyttsx3
 
 
+
 app = Flask(__name__)
 def synthesize(toSpeak):
 	engine = pyttsx3.init()
